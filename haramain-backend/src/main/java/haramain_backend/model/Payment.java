@@ -11,7 +11,7 @@ import jakarta.persistence.Column; import jakarta.persistence.Entity; import jak
     private int requestId;
 
     @Column(name = "DonationID")
-    private int donationID;
+    private Integer donationID;
 
     @Column(name = "Amount")
     private double amount;
@@ -41,11 +41,11 @@ import jakarta.persistence.Column; import jakarta.persistence.Entity; import jak
         this.requestId = requestId;
     }
 
-    public int getDonationID() {
+    public Integer getDonationID() {
         return donationID;
     }
 
-    public void setDonationID(int donationID) {
+    public void setDonationID(Integer donationID) {
         this.donationID = donationID;
     }
 
