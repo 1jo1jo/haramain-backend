@@ -1,7 +1,6 @@
 package haramain_backend.controller;
 
 import java.util.List;
-
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -14,7 +13,6 @@ import haramain_backend.repository.MealRequestRepository;
 
 @RestController
 public class MealRequestController {
-
 
     private final MealRequestRepository mealRequestRepository;
 
@@ -44,5 +42,6 @@ public class MealRequestController {
 
         return mealRequestRepository.save(mealRequest);
     }
+
 
 }
