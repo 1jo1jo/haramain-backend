@@ -15,6 +15,7 @@ import haramain_backend.repository.UserRepository;
 public class AuthController {
 
     private final UserRepository userRepository;
+
     private final BCryptPasswordEncoder passwordEncoder =
             new BCryptPasswordEncoder();
 
@@ -31,6 +32,7 @@ public class AuthController {
 
         if (identifier == null || identifier.isBlank()
                 || password == null || password.isBlank()) {
+
             return ResponseEntity.badRequest().body(
                     Map.of("message", "يرجى إدخال بيانات تسجيل الدخول")
             );
@@ -57,10 +59,12 @@ public class AuthController {
         if (storedPassword.startsWith("$2a$")
                 || storedPassword.startsWith("$2b$")
                 || storedPassword.startsWith("$2y$")) {
+
             passwordMatches =
                     passwordEncoder.matches(password, storedPassword);
+
         } else {
-            // دعم مؤقت للحسابات التجريبية القديمة فقط
+            // توافق مؤقت مع الحسابات التجريبية القديمة
             passwordMatches = password.equals(storedPassword);
         }
 
@@ -73,9 +77,15 @@ public class AuthController {
         return ResponseEntity.ok(Map.of(
                 "message", "تم تسجيل الدخول بنجاح",
                 "userId", user.getUserId(),
-                "fullName", user.getFullName(),
-                "username", user.getUsername(),
-                "email", user.getEmail()
+                "fullName", user.getFullName() != null
+                        ? user.getFullName() : "",
+                "username", user.getUsername() != null
+                        ? user.getUsername() : "",
+                "email", user.getEmail() != null
+                        ? user.getEmail() : "",
+                "role", user.getRole() != null
+                        ? user.getRole() : "user"
         ));
     }
 }
+
