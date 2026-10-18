@@ -1,12 +1,14 @@
-package haramain_backend.controller;
+ package haramain_backend.controller;
 
 import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import haramain_backend.config.JwtService;
 import haramain_backend.model.User;
 import haramain_backend.repository.UserRepository;
 
@@ -15,13 +17,39 @@ import haramain_backend.repository.UserRepository;
 public class AuthController {
 
     private final UserRepository userRepository;
+    private final JwtService jwtService;
+    private final JdbcTemplate jdbcTemplate;
 
     private final BCryptPasswordEncoder passwordEncoder =
             new BCryptPasswordEncoder();
 
-    public AuthController(UserRepository userRepository) {
+    public AuthController(
+            UserRepository userRepository,
+            JwtService jwtService,
+            JdbcTemplate jdbcTemplate) {
+
         this.userRepository = userRepository;
+        this.jwtService = jwtService;
+        this.jdbcTemplate = jdbcTemplate;
     }
+
+    @GetMapping("/db-check")
+    public Map<String, Object> dbCheck() {
+        return Map.of(
+                "connection",
+                jdbcTemplate.queryForMap(
+                        "SELECT DATABASE() AS dbName, "
+                                + "@@hostname AS hostName, "
+                                + "@@port AS port"
+                ),
+                "userColumns",
+                jdbcTemplate.queryForList(
+                        "SHOW COLUMNS FROM `user`"
+                )
+        );
+    }
+
+
 
     @PostMapping("/login")
     public ResponseEntity<?> login(
@@ -38,11 +66,17 @@ public class AuthController {
             );
         }
 
+        String normalizedIdentifier = identifier.trim();
+
         User user = userRepository.findAll().stream()
                 .filter(u ->
-                        identifier.equalsIgnoreCase(u.getUsername())
-                                || (u.getEmail() != null
-                                && identifier.equalsIgnoreCase(u.getEmail())))
+                        (u.getUsername() != null
+                                && normalizedIdentifier.equalsIgnoreCase(
+                                u.getUsername()))
+                                ||
+                                (u.getEmail() != null
+                                        && normalizedIdentifier.equalsIgnoreCase(
+                                        u.getEmail())))
                 .findFirst()
                 .orElse(null);
 
@@ -56,16 +90,22 @@ public class AuthController {
 
         boolean passwordMatches;
 
-        if (storedPassword.startsWith("$2a$")
-                || storedPassword.startsWith("$2b$")
-                || storedPassword.startsWith("$2y$")) {
+        boolean isBcryptPassword =
+                storedPassword.startsWith("$2a$")
+                        || storedPassword.startsWith("$2b$")
+                        || storedPassword.startsWith("$2y$");
 
+        if (isBcryptPassword) {
             passwordMatches =
                     passwordEncoder.matches(password, storedPassword);
-
         } else {
             // توافق مؤقت مع الحسابات التجريبية القديمة
             passwordMatches = password.equals(storedPassword);
+
+            if (passwordMatches) {
+                user.setPassword(passwordEncoder.encode(password));
+                userRepository.save(user);
+            }
         }
 
         if (!passwordMatches) {
@@ -74,18 +114,26 @@ public class AuthController {
             );
         }
 
-        return ResponseEntity.ok(Map.of(
-                "message", "تم تسجيل الدخول بنجاح",
-                "userId", user.getUserId(),
-                "fullName", user.getFullName() != null
-                        ? user.getFullName() : "",
-                "username", user.getUsername() != null
-                        ? user.getUsername() : "",
-                "email", user.getEmail() != null
-                        ? user.getEmail() : "",
-                "role", user.getRole() != null
-                        ? user.getRole() : "user"
-        ));
+        String role = user.getRole() != null
+                ? user.getRole()
+                : "user";
+
+        String token = jwtService.generateToken(user);
+
+        return ResponseEntity.ok(
+                Map.of(
+                        "message", "تم تسجيل الدخول بنجاح",
+                        "userId", user.getUserId(),
+                        "fullName", user.getFullName() != null
+                                ? user.getFullName() : "",
+                        "username", user.getUsername() != null
+                                ? user.getUsername() : "",
+                        "email", user.getEmail() != null
+                                ? user.getEmail() : "",
+                        "role", role,
+                        "token", token
+                )
+        );
     }
 }
 
