@@ -1,9 +1,10 @@
-package haramain_backend.config;
+ package haramain_backend.config;
 
 import java.util.List;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -12,7 +13,6 @@ import org.springframework.web.cors.CorsConfiguration;
 
 @Configuration
 public class SecurityConfig {
-
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
@@ -52,19 +52,39 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(
                                 SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+
+                        // تسجيل الدخول
                         .requestMatchers("/auth/**").permitAll()
 
-                        // مسارات الموقع والتطبيق الحالية
+                        // عرض الوجبات والمنظمات
                         .requestMatchers(
                                 "/meals/**",
-                                "/organisations/**",
-                                "/users/**"
+                                "/organisations/**"
                         ).permitAll()
+
+                        // إنشاء حساب جديد فقط بدون تسجيل دخول
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/users"
+                        ).permitAll()
+
+                        // عرض قائمة المستخدمين للأدمن فقط
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/users"
+                        ).hasRole("ADMIN")
+
+                        // عرض بيانات مستخدم يتطلب تسجيل الدخول
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/users/*"
+                        ).authenticated()
 
                         // جميع مسارات الإدارة للأدمن فقط
                         .requestMatchers("/admin/**")
                         .hasRole("ADMIN")
 
+                        // بقية المسارات
                         .anyRequest().permitAll()
                 )
                 .addFilterBefore(
@@ -74,6 +94,5 @@ public class SecurityConfig {
 
         return http.build();
     }
-
-
 }
+

@@ -56,25 +56,20 @@ public class UserController {
         return ResponseEntity.ok(userToMap(user.get()));
     }
 
-    // إنشاء مستخدم - المسار الحالي
+// إنشاء حساب مستخدم عادي
     @PostMapping("/users")
-    public ResponseEntity<?> createUser(
-            @RequestBody User user) {
+    public ResponseEntity<?> createUser(@RequestBody User user) {
 
         if (user.getPassword() == null
                 || user.getPassword().isBlank()) {
             return ResponseEntity.badRequest()
-                    .body(Map.of(
-                            "message", "كلمة المرور مطلوبة"
-                    ));
+                    .body(Map.of("message", "كلمة المرور مطلوبة"));
         }
 
         if (user.getEmail() == null
                 || user.getEmail().isBlank()) {
             return ResponseEntity.badRequest()
-                    .body(Map.of(
-                            "message", "البريد الإلكتروني مطلوب"
-                    ));
+                    .body(Map.of("message", "البريد الإلكتروني مطلوب"));
         }
 
         if (userRepository.findAll().stream()
@@ -84,40 +79,36 @@ public class UserController {
                                 user.getEmail().trim()))) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(Map.of(
-                            "message", "البريد الإلكتروني مسجل مسبقًا"
-                    ));
+                            "message", "البريد الإلكتروني مسجل مسبقًا"));
         }
 
-        user.setEmail(user.getEmail().trim());
-        user.setPassword(
-                passwordEncoder.encode(user.getPassword()));
-
-        // المستخدم العادي هو الدور الافتراضي
-        if (user.getRole() == null
-                || user.getRole().isBlank()) {
-            user.setRole("user");
-        } else {
-            user.setRole(user.getRole().trim().toLowerCase());
-        }
-
-        if (!List.of(
-                "user",
-                "admin",
-                "distributor",
-                "organization"
-        ).contains(user.getRole())) {
+        if (user.getFullName() == null
+                || user.getFullName().isBlank()
+                || user.getUsername() == null
+                || user.getUsername().isBlank()
+                || user.getPhone() == null
+                || user.getPhone().isBlank()) {
             return ResponseEntity.badRequest()
                     .body(Map.of(
-                            "message", "الدور المحدد غير صالح"
-                    ));
+                            "message", "الاسم واسم المستخدم ورقم الجوال مطلوبة"));
         }
+
+        user.setEmail(user.getEmail().trim().toLowerCase());
+        user.setFullName(user.getFullName().trim());
+        user.setUsername(user.getUsername().trim());
+        user.setPhone(user.getPhone().trim());
+
+        // منع التسجيل العام من إنشاء حساب بصلاحيات مرتفعة
+        user.setRole("user");
+
+        user.setPassword(
+                passwordEncoder.encode(user.getPassword()));
 
         User savedUser = userRepository.save(user);
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(userToMap(savedUser));
     }
-
 
 
     // تجهيز بيانات المستخدم دون إظهار كلمة المرور
