@@ -37,6 +37,12 @@ public class User {
     @Column(name = "Role")
     private String role = "user";
 
+    @Column(name = "isActive", nullable = false)
+    private boolean isActive = true;
+
+    @Column(name = "organisationID")
+    private Integer organisationId;
+
     public int getUserId() {
         return userId;
     }
@@ -91,5 +97,21 @@ public class User {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public void setActive(boolean active) {
+        isActive = active;
+    }
+
+    public Integer getOrganisationId() {
+        return organisationId;
+    }
+
+    public void setOrganisationId(Integer organisationId) {
+        this.organisationId = organisationId;
     }
 }

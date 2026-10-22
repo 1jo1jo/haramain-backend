@@ -1,5 +1,6 @@
- package haramain_backend.controller;
+package haramain_backend.controller;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.springframework.http.HttpStatus;
@@ -35,21 +36,26 @@ public class AuthController {
 
     @GetMapping("/db-check")
     public Map<String, Object> dbCheck() {
-        return Map.of(
+        Map<String, Object> result = new LinkedHashMap<>();
+
+        result.put(
                 "connection",
                 jdbcTemplate.queryForMap(
                         "SELECT DATABASE() AS dbName, "
                                 + "@@hostname AS hostName, "
                                 + "@@port AS port"
-                ),
+                )
+        );
+
+        result.put(
                 "userColumns",
                 jdbcTemplate.queryForList(
                         "SHOW COLUMNS FROM `user`"
                 )
         );
+
+        return result;
     }
-
-
 
     @PostMapping("/login")
     public ResponseEntity<?> login(
@@ -68,16 +74,10 @@ public class AuthController {
 
         String normalizedIdentifier = identifier.trim();
 
-        User user = userRepository.findAll().stream()
-                .filter(u ->
-                        (u.getUsername() != null
-                                && normalizedIdentifier.equalsIgnoreCase(
-                                u.getUsername()))
-                                ||
-                                (u.getEmail() != null
-                                        && normalizedIdentifier.equalsIgnoreCase(
-                                        u.getEmail())))
-                .findFirst()
+        User user = userRepository
+                .findByEmailIgnoreCase(normalizedIdentifier)
+                .or(() -> userRepository
+                        .findByUsernameIgnoreCase(normalizedIdentifier))
                 .orElse(null);
 
         if (user == null || user.getPassword() == null) {
@@ -86,14 +86,23 @@ public class AuthController {
             );
         }
 
-        String storedPassword = user.getPassword();
+        if (!user.isActive()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+                    Map.of(
+                            "message",
+                            "الحساب موقوف، يرجى التواصل مع الإدارة"
+                    )
+            );
+        }
 
-        boolean passwordMatches;
+        String storedPassword = user.getPassword();
 
         boolean isBcryptPassword =
                 storedPassword.startsWith("$2a$")
                         || storedPassword.startsWith("$2b$")
                         || storedPassword.startsWith("$2y$");
+
+        boolean passwordMatches;
 
         if (isBcryptPassword) {
             passwordMatches =
@@ -120,20 +129,25 @@ public class AuthController {
 
         String token = jwtService.generateToken(user);
 
-        return ResponseEntity.ok(
-                Map.of(
-                        "message", "تم تسجيل الدخول بنجاح",
-                        "userId", user.getUserId(),
-                        "fullName", user.getFullName() != null
-                                ? user.getFullName() : "",
-                        "username", user.getUsername() != null
-                                ? user.getUsername() : "",
-                        "email", user.getEmail() != null
-                                ? user.getEmail() : "",
-                        "role", role,
-                        "token", token
-                )
+        Map<String, Object> response = new LinkedHashMap<>();
+
+        response.put("message", "تم تسجيل الدخول بنجاح");
+        response.put("userId", user.getUserId());
+        response.put(
+                "fullName",
+                user.getFullName() != null ? user.getFullName() : ""
         );
+        response.put(
+                "username",
+                user.getUsername() != null ? user.getUsername() : ""
+        );
+        response.put(
+                "email",
+                user.getEmail() != null ? user.getEmail() : ""
+        );
+        response.put("role", role);
+        response.put("token", token);
+
+        return ResponseEntity.ok(response);
     }
 }
-

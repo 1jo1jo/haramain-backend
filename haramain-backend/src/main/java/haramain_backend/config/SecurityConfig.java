@@ -1,4 +1,4 @@
- package haramain_backend.config;
+package haramain_backend.config;
 
 import java.util.List;
 
@@ -30,20 +30,10 @@ public class SecurityConfig {
                     CorsConfiguration configuration =
                             new CorsConfiguration();
 
-                    configuration.setAllowedOriginPatterns(
-                            List.of("*"));
-
+                    configuration.setAllowedOriginPatterns(List.of("*"));
                     configuration.setAllowedMethods(
-                            List.of(
-                                    "GET",
-                                    "POST",
-                                    "PUT",
-                                    "DELETE",
-                                    "OPTIONS"
-                            ));
-
-                    configuration.setAllowedHeaders(
-                            List.of("*"));
+                            List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+                    configuration.setAllowedHeaders(List.of("*"));
 
                     return configuration;
                 }))
@@ -53,39 +43,45 @@ public class SecurityConfig {
                                 SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
 
-                        // تسجيل الدخول
+                        // الطلبات التمهيدية للمتصفح
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        // تسجيل الدخول والتحقق من الاتصال
                         .requestMatchers("/auth/**").permitAll()
 
-                        // عرض الوجبات والمنظمات
+                        // الوجبات والمنظمات متاحة للعرض
                         .requestMatchers(
+                                HttpMethod.GET,
                                 "/meals/**",
                                 "/organisations/**"
                         ).permitAll()
 
-                        // إنشاء حساب جديد فقط بدون تسجيل دخول
+                        // التسجيل العام
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/users"
                         ).permitAll()
 
-                        // عرض قائمة المستخدمين للأدمن فقط
+                        // إدارة النظام للأدمن فقط
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
+
+                        // عمليات المطعم
+                        .requestMatchers("/restaurant/**").hasRole("RESTAURANT")
+
+                        // عمليات المندوب
+                        .requestMatchers("/courier/**").hasRole("COURIER")
+
+                        // قائمة المستخدمين للأدمن فقط
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/users"
                         ).hasRole("ADMIN")
 
-                        // عرض بيانات مستخدم يتطلب تسجيل الدخول
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/users/*"
-                        ).authenticated()
+                        // بيانات المستخدم تتطلب تسجيل الدخول
+                        .requestMatchers("/users/**").authenticated()
 
-                        // جميع مسارات الإدارة للأدمن فقط
-                        .requestMatchers("/admin/**")
-                        .hasRole("ADMIN")
-
-                        // بقية المسارات
-                        .anyRequest().permitAll()
+                        // منع أي مسار غير محدد من الوصول العام
+                        .anyRequest().authenticated()
                 )
                 .addFilterBefore(
                         jwtAuthenticationFilter,
@@ -95,4 +91,3 @@ public class SecurityConfig {
         return http.build();
     }
 }
-
