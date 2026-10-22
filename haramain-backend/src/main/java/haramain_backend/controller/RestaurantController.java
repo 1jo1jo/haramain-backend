@@ -124,7 +124,8 @@ public class RestaurantController {
         ));
     }
 
-    // إسناد الطلب إلى مندوب
+
+// اختيار طريقة التوصيل: المطعم أو المندوب
     @PutMapping("/orders/{id}/assign")
     public ResponseEntity<?> assignCourier(
             @PathVariable int id,
@@ -149,61 +150,91 @@ public class RestaurantController {
         if (!restaurant.getOrganisationId().equals(request.getRestaurantId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("message",
-                            "لا يمكنك إسناد طلب تابع لمنظمة أخرى"));
+                            "لا يمكنك تعديل طلب تابع لمنظمة أخرى"));
         }
 
-        Object rawCourierId = body.get("courierId");
+        String currentStatus = request.getStatus() == null
+                ? ""
+                : request.getStatus().trim().toLowerCase(Locale.ROOT);
 
-        if (rawCourierId == null) {
+        if (!"ready".equals(currentStatus)) {
             return ResponseEntity.badRequest()
-                    .body(Map.of("message", "يرجى تحديد رقم المندوب"));
+                    .body(Map.of("message",
+                            "يجب تجهيز الطلب أولًا قبل اختيار طريقة التوصيل"));
         }
 
-        int courierId;
+        Object rawMethod = body.get("deliveryMethod");
 
-        try {
-            if (rawCourierId instanceof Number number) {
-                courierId = number.intValue();
-            } else {
-                courierId = Integer.parseInt(rawCourierId.toString().trim());
+        String deliveryMethod = rawMethod == null
+                ? ""
+                : rawMethod.toString().trim().toLowerCase(Locale.ROOT);
+
+        if (!deliveryMethod.equals("restaurant")
+                && !deliveryMethod.equals("courier")) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message",
+                            "طريقة التوصيل يجب أن تكون restaurant أو courier"));
+        }
+
+        if (deliveryMethod.equals("restaurant")) {
+
+            request.setDeliveryMethod("restaurant");
+            request.setCourierId(null);
+
+        } else {
+
+            Object rawCourierId = body.get("courierId");
+
+            if (rawCourierId == null) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("message",
+                                "يرجى تحديد رقم المندوب"));
             }
-        } catch (NumberFormatException exception) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", "رقم المندوب غير صحيح"));
+
+            int courierId;
+
+            try {
+                if (rawCourierId instanceof Number number) {
+                    courierId = number.intValue();
+                } else {
+                    courierId = Integer.parseInt(
+                            rawCourierId.toString().trim());
+                }
+            } catch (NumberFormatException exception) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("message",
+                                "رقم المندوب غير صحيح"));
+            }
+
+            User courier = userRepository.findById(courierId).orElse(null);
+
+            if (courier == null
+                    || !courier.isActive()
+                    || courier.getRole() == null
+                    || !courier.getRole().equalsIgnoreCase("courier")) {
+
+                return ResponseEntity.badRequest()
+                        .body(Map.of("message",
+                                "حساب المندوب غير موجود أو غير نشط"));
+            }
+
+            request.setDeliveryMethod("courier");
+            request.setCourierId(courierId);
         }
-
-        User courier = userRepository.findById(courierId).orElse(null);
-
-        if (courier == null
-                || !courier.isActive()
-                || courier.getRole() == null
-                || !courier.getRole().equalsIgnoreCase("courier")) {
-
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message",
-                            "حساب المندوب غير موجود أو غير نشط"));
-        }
-
-        if (request.getStatus() == null
-                || !(request.getStatus().equalsIgnoreCase("ready")
-                || request.getStatus().equalsIgnoreCase("confirmed"))) {
-
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message",
-                            "يجب تأكيد الطلب أو تجهيزه قبل إسناده للمندوب"));
-        }
-
-        request.setCourierId(courierId);
 
         MealRequest saved = mealRequestRepository.save(request);
 
         return ResponseEntity.ok(Map.of(
-                "message", "تم إسناد الطلب إلى المندوب بنجاح",
+                "message", "تم تحديد طريقة التوصيل بنجاح",
                 "requestId", saved.getRequestId(),
-                "courierId", saved.getCourierId(),
+                "deliveryMethod", saved.getDeliveryMethod(),
+                "courierId", saved.getCourierId() == null
+                        ? 0 : saved.getCourierId(),
                 "status", saved.getStatus()
         ));
     }
+
+
 
     private User getAuthenticatedRestaurant(Authentication authentication) {
 

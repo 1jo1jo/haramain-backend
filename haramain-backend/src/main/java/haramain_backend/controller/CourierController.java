@@ -1,4 +1,4 @@
-package haramain_backend.controller;
+ package haramain_backend.controller;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -25,6 +25,7 @@ public class CourierController {
     public CourierController(
             MealRequestRepository mealRequestRepository,
             UserRepository userRepository) {
+
         this.mealRequestRepository = mealRequestRepository;
         this.userRepository = userRepository;
     }
@@ -37,7 +38,9 @@ public class CourierController {
 
         if (courier == null) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("message", "حساب المندوب غير صالح أو غير نشط"));
+                    .body(Map.of(
+                            "message",
+                            "حساب المندوب غير صالح أو غير نشط"));
         }
 
         List<Map<String, Object>> orders =
@@ -60,67 +63,108 @@ public class CourierController {
 
         if (courier == null) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("message", "حساب المندوب غير صالح أو غير نشط"));
+                    .body(Map.of(
+                            "message",
+                            "حساب المندوب غير صالح أو غير نشط"));
         }
 
+        // السماح للمندوب بتحديث الحالة إلى delivered فقط
         String status = body.get("status") == null
                 ? ""
-                : body.get("status").toString().trim().toLowerCase(Locale.ROOT);
+                : body.get("status")
+                .toString()
+                .trim()
+                .toLowerCase(Locale.ROOT);
 
         if (!"delivered".equals(status)) {
             return ResponseEntity.badRequest()
-                    .body(Map.of("message", "يمكن للمندوب تحديث الحالة إلى delivered فقط"));
+                    .body(Map.of(
+                            "message",
+                            "يمكن للمندوب تحديث الحالة إلى delivered فقط"));
         }
 
-        MealRequest request = mealRequestRepository.findById(id).orElse(null);
+        // البحث عن الطلب
+        MealRequest request =
+                mealRequestRepository.findById(id).orElse(null);
 
         if (request == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("message", "الطلب غير موجود"));
         }
 
+        // التأكد أن الطلب مخصص للتوصيل عن طريق المندوب
+        String deliveryMethod = request.getDeliveryMethod() == null
+                ? ""
+                : request.getDeliveryMethod()
+                .trim()
+                .toLowerCase(Locale.ROOT);
+
+        if (!"courier".equals(deliveryMethod)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of(
+                            "message",
+                            "هذا الطلب غير مخصص للتوصيل عن طريق المندوب"));
+        }
+
         // التأكد أن الطلب مسند إلى المندوب الحالي
         if (request.getCourierId() == null
                 || !request.getCourierId().equals(courier.getUserId())) {
+
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("message", "هذا الطلب غير مسند إليك"));
+                    .body(Map.of(
+                            "message",
+                            "هذا الطلب غير مسند إليك"));
         }
 
+        // التأكد أن الطلب جاهز للتوصيل
         String currentStatus = request.getStatus() == null
                 ? ""
-                : request.getStatus().trim().toLowerCase(Locale.ROOT);
+                : request.getStatus()
+                .trim()
+                .toLowerCase(Locale.ROOT);
 
-        if (!"ready".equals(currentStatus)
-                && !"confirmed".equals(currentStatus)) {
+        if (!"ready".equals(currentStatus)) {
             return ResponseEntity.badRequest()
                     .body(Map.of(
                             "message",
-                            "لا يمكن إتمام التوصيل إلا للطلبات المؤكدة أو الجاهزة"));
+                            "لا يمكن إتمام التوصيل إلا بعد تجهيز الطلب"));
         }
 
+        // تحديث الحالة وحفظ الطلب
         request.setStatus("delivered");
-        MealRequest savedRequest = mealRequestRepository.save(request);
+
+        MealRequest savedRequest =
+                mealRequestRepository.save(request);
 
         return ResponseEntity.ok(orderToMap(savedRequest));
     }
 
-    private User getAuthenticatedCourier(Authentication authentication) {
+    // التحقق من حساب المندوب المسجل دخوله
+    private User getAuthenticatedCourier(
+            Authentication authentication) {
 
-        if (authentication == null || authentication.getName() == null) {
+        if (authentication == null
+                || !authentication.isAuthenticated()
+                || authentication.getName() == null) {
+
             return null;
         }
 
         try {
-            int userId = Integer.parseInt(authentication.getName());
+            int userId =
+                    Integer.parseInt(authentication.getName());
 
-            User courier = userRepository.findById(userId).orElse(null);
+            User courier =
+                    userRepository.findById(userId).orElse(null);
 
             if (courier == null || !courier.isActive()) {
                 return null;
             }
 
             if (courier.getRole() == null
-                    || !"courier".equalsIgnoreCase(courier.getRole().trim())) {
+                    || !"courier".equalsIgnoreCase(
+                    courier.getRole().trim())) {
+
                 return null;
             }
 
@@ -131,15 +175,18 @@ public class CourierController {
         }
     }
 
-    private Map<String, Object> orderToMap(MealRequest request) {
+    // تجهيز بيانات الطلب لإرجاعها في استجابة API
+    private Map<String, Object> orderToMap(
+            MealRequest request) {
 
-        Map<String, Object> result = new LinkedHashMap<>();
+        Map<String, Object> result =
+                new LinkedHashMap<>();
 
         result.put("requestId", request.getRequestId());
         result.put("userId", request.getUserId());
         result.put("requestDate", request.getRequestDate());
         result.put("status", request.getStatus());
-        result.put("organisationId", request.getRestaurantId());
+        result.put("restaurantId", request.getRestaurantId());
         result.put("courierId", request.getCourierId());
         result.put("deliveryMethod", request.getDeliveryMethod());
 
