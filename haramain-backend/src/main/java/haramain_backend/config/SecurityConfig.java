@@ -43,18 +43,44 @@ public class SecurityConfig {
                                 SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
 
-                        // الطلبات التمهيدية للمتصفح
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // طلبات OPTIONS
+                        .requestMatchers(
+                                HttpMethod.OPTIONS, "/**"
+                        ).permitAll()
 
-                        // تسجيل الدخول والتحقق من الاتصال
+                        // تسجيل الدخول
                         .requestMatchers("/auth/**").permitAll()
 
-                        // الوجبات والمنظمات متاحة للعرض
+                        // وجبات المطعم الخاصة: للمطعم فقط
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/meals/my-meals"
+                        ).hasRole("RESTAURANT")
+
+                        // عرض الوجبات والمنظمات للجميع
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/meals/**",
                                 "/organisations/**"
                         ).permitAll()
+
+                        // إضافة الوجبات للمطعم فقط
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/meals/**"
+                        ).hasRole("RESTAURANT")
+
+                        // تعديل الوجبات للمطعم فقط
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/meals/**"
+                        ).hasRole("RESTAURANT")
+
+                        // حذف الوجبات للمطعم فقط
+                        .requestMatchers(
+                                HttpMethod.DELETE,
+                                "/meals/**"
+                        ).hasRole("RESTAURANT")
 
                         // التسجيل العام
                         .requestMatchers(
@@ -62,14 +88,16 @@ public class SecurityConfig {
                                 "/users"
                         ).permitAll()
 
-                        // إدارة النظام للأدمن فقط
+                        // إدارة النظام
                         .requestMatchers("/admin/**").hasRole("ADMIN")
 
-                        // عمليات المطعم
-                        .requestMatchers("/restaurant/**").hasRole("RESTAURANT")
+                        // إدارة طلبات المطعم
+                        .requestMatchers("/restaurant/**")
+                        .hasRole("RESTAURANT")
 
                         // عمليات المندوب
-                        .requestMatchers("/courier/**").hasRole("COURIER")
+                        .requestMatchers("/courier/**")
+                        .hasRole("COURIER")
 
                         // قائمة المستخدمين للأدمن فقط
                         .requestMatchers(
@@ -77,10 +105,10 @@ public class SecurityConfig {
                                 "/users"
                         ).hasRole("ADMIN")
 
-                        // بيانات المستخدم تتطلب تسجيل الدخول
+                        // بيانات المستخدم
                         .requestMatchers("/users/**").authenticated()
 
-                        // منع أي مسار غير محدد من الوصول العام
+                        // بقية المسارات تتطلب تسجيل الدخول
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(
