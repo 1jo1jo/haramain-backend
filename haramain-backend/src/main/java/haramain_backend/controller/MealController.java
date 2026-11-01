@@ -13,6 +13,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
+import haramain_backend.dto.MealDetails;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
@@ -40,12 +41,14 @@ public class MealController {
         this.cloudinary = cloudinary;
     }
 
-    // عرض جميع الوجبات
+    // عرض جميع الوجبات مع اسم المطعم والمدينة
     @GetMapping
-    public List<Meal> getAllMeals() {
-        return mealRepository.findAll();
+    public List<MealDetails> getAllMeals() {
+        return mealRepository.findAllMealsWithOrganisation()
+                .stream()
+                .filter(meal -> meal.getQuantity() > 0)
+                .toList();
     }
-
     // عرض وجبة واحدة
     @GetMapping("/{id}")
     public Meal getMealById(@PathVariable int id) {
