@@ -16,6 +16,17 @@ private String phone;
 @Column(name = "address")
 private String address;
 
+    @Column(name = "city")
+    private String city;
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
 public int getOrganisationID() {
     return organisationID;
 }

@@ -111,6 +111,7 @@ public class SecurityConfig {
                         // بقية المسارات تتطلب تسجيل الدخول
                         .anyRequest().authenticated()
                 )
+
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class

@@ -13,4 +13,6 @@ public interface MealRequestRepository extends JpaRepository<MealRequest, Intege
     // جلب الطلبات المسندة إلى مندوب معين
     List<MealRequest> findByCourierId(Integer courierId);
 
+    // جلب طلبات مستخدم معين
+    List<MealRequest> findByUserId(int userId);
 }

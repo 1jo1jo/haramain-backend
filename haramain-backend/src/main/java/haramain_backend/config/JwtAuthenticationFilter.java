@@ -51,6 +51,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             if (!jwtService.isTokenValid(token)) {
+                System.out.println("JWT DEBUG: Token is invalid");
                 SecurityContextHolder.clearContext();
                 filterChain.doFilter(request, response);
                 return;
@@ -62,6 +63,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             // رفض الحساب غير الموجود أو الموقوف
             if (user == null || !user.isActive()) {
+                System.out.println("JWT DEBUG: User not found or inactive");
                 SecurityContextHolder.clearContext();
                 filterChain.doFilter(request, response);
                 return;
@@ -70,6 +72,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // الاعتماد على الدور الحالي في قاعدة البيانات
             // وليس الدور القديم المخزن في JWT
             String role = user.getRole();
+            System.out.println("JWT DEBUG: User ID = " + user.getUserId());
+            System.out.println("JWT DEBUG: Role = " + role);
 
             if (role == null || role.isBlank()) {
                 SecurityContextHolder.clearContext();
