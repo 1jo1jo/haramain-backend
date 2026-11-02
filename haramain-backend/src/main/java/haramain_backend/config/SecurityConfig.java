@@ -99,6 +99,10 @@ public class SecurityConfig {
                         .requestMatchers("/courier/**")
                         .hasRole("COURIER")
 
+                        // صفحة المندوب ومهام التوزيع
+                        .requestMatchers("/distributions/**")
+                        .hasRole("COURIER")
+
                         // قائمة المستخدمين للأدمن فقط
                         .requestMatchers(
                                 HttpMethod.GET,

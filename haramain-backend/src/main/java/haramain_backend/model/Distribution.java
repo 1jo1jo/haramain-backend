@@ -1,7 +1,18 @@
 package haramain_backend.model;
+
 import java.time.LocalDateTime;
-import jakarta.persistence.Column; import jakarta.persistence.Entity; import jakarta.persistence.GeneratedValue; import jakarta.persistence.GenerationType; import jakarta.persistence.Id; import jakarta.persistence.Table;
-@Entity @Table(name = "distribution") public class Distribution {
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
+@Entity
+@Table(name = "distribution")
+public class Distribution {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "DistributionID")
@@ -24,6 +35,9 @@ import jakarta.persistence.Column; import jakarta.persistence.Entity; import jak
 
     @Column(name = "DistributionStatus")
     private String distributionStatus;
+
+    @Column(name = "DistributorID")
+    private Integer distributorID;
 
     public int getDistributionID() {
         return distributionID;
@@ -79,5 +93,13 @@ import jakarta.persistence.Column; import jakarta.persistence.Entity; import jak
 
     public void setDistributionStatus(String distributionStatus) {
         this.distributionStatus = distributionStatus;
+    }
+
+    public Integer getDistributorID() {
+        return distributorID;
+    }
+
+    public void setDistributorID(Integer distributorID) {
+        this.distributorID = distributorID;
     }
 }

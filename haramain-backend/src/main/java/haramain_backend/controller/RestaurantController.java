@@ -124,8 +124,39 @@ public class RestaurantController {
         ));
     }
 
+    // عرض قائمة المندوبين النشطين
+    @GetMapping("/couriers")
+    public ResponseEntity<?> getCouriers(Authentication authentication) {
 
-// اختيار طريقة التوصيل: المطعم أو المندوب
+
+        User restaurant = getAuthenticatedRestaurant(authentication);
+
+        if (restaurant == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message",
+                            "حساب المطعم غير موجود أو غير مرتبط بمنظمة"));
+        }
+
+        List<Map<String, Object>> couriers =
+                userRepository.findActiveCouriers()
+                        .stream()
+                        .map(courier -> {
+                            Map<String, Object> result = new LinkedHashMap<>();
+                            result.put("userId", courier.getUserId());
+                            result.put("fullName", courier.getFullName());
+                            result.put("phone", courier.getPhone());
+                            return result;
+                        })
+                        .toList();
+
+        return ResponseEntity.ok(couriers);
+
+
+    }
+
+
+
+    // اختيار طريقة التوصيل: المطعم أو المندوب
     @PutMapping("/orders/{id}/assign")
     public ResponseEntity<?> assignCourier(
             @PathVariable int id,
