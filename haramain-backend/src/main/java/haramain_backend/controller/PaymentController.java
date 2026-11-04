@@ -1,8 +1,20 @@
 package haramain_backend.controller;
+
 import java.util.List;
-import org.springframework.web.bind.annotation.GetMapping; import org.springframework.web.bind.annotation.PostMapping; import org.springframework.web.bind.annotation.RequestBody; import org.springframework.web.bind.annotation.RestController;
-import haramain_backend.model.Payment; import haramain_backend.repository.PaymentRepository;
-@RestController public class PaymentController {
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RestController;
+
+import haramain_backend.model.Payment;
+import haramain_backend.repository.PaymentRepository;
+
+@RestController
+public class PaymentController {
+
+
     private final PaymentRepository paymentRepository;
 
     public PaymentController(PaymentRepository paymentRepository) {
@@ -14,8 +26,15 @@ import haramain_backend.model.Payment; import haramain_backend.repository.Paymen
         return paymentRepository.findAll();
     }
 
+    @GetMapping("/payments/request/{requestId}")
+    public List<Payment> getPaymentsByRequestId(@PathVariable int requestId) {
+        return paymentRepository.findByRequestId(requestId);
+    }
+
     @PostMapping("/payments")
     public Payment createPayment(@RequestBody Payment payment) {
         return paymentRepository.save(payment);
     }
+
+
 }
